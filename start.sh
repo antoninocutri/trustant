@@ -1094,22 +1094,35 @@ finish_native() {
 # Matching is anchored on the "<version>": "<url>" pair inside the "<arch>" block:
 # the arch block is isolated first, so a version key present under a different
 # arch cannot satisfy the lookup.
+#
+# The version key is matched with grep -F, never as a regex. Real keys carry both
+# '.' and '+' (0.9.0+f8fbd3), and escaping those portably for sed is a trap: the
+# obvious 's/[.+]/\\&/g' emits a bare '&' under GNU sed — so every pinned version
+# resolved to nothing on Linux and WSL while "latest" kept working. Quoting both
+# sides of the key keeps the match exact, so "0.9.0" cannot hit "0.9.0+f8fbd3".
 index_url_for() {
   local json="$1" arch="$2" version="$3"
-  # Isolate the arch object: from "<arch>": { up to the closing brace.
+  # Isolate the arch object: from "<arch>": { up to the closing brace, then split
+  # its pairs onto their own lines so the key can be matched literally.
   printf '%s' "$json" \
     | tr -d '\n' \
     | sed -n "s/.*\"${arch}\"[[:space:]]*:[[:space:]]*{\([^}]*\)}.*/\1/p" \
-    | sed -n "s/.*\"$(printf '%s' "$version" | sed 's/[].[^$*\/+]/\\&/g')\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p"
+    | tr ',' '\n' \
+    | { grep -F "\"${version}\"" || true; } \
+    | sed -n 's/^[^:]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
+    | head -1
 }
 
 # List the version keys published for an arch, comma-separated, for error output.
+# Both greps here and in index_url_for are guarded: this runs under `set -o
+# pipefail`, so an unmatched grep would abort the script on the very path that
+# exists to print a diagnosis.
 index_versions_for() {
   local json="$1" arch="$2"
   printf '%s' "$json" \
     | tr -d '\n' \
     | sed -n "s/.*\"${arch}\"[[:space:]]*:[[:space:]]*{\([^}]*\)}.*/\1/p" \
-    | grep -o '"[^"]*"[[:space:]]*:' \
+    | { grep -o '"[^"]*"[[:space:]]*:' || true; } \
     | sed 's/[[:space:]]*:$//; s/"//g' \
     | paste -sd, - \
     | sed 's/,/, /g'

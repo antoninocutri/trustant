@@ -74,6 +74,20 @@ in the VM, so it cannot help a Mac parse the index. The index is a fixed,
 generated shape, so a targeted `sed` over the flattened text is sufficient and
 keeps the host dependency-free.
 
+**The version key is matched literally, with `grep -F`, never as a regex.** Real
+keys carry both `.` and `+` (`0.9.0+f8fbd3`), and escaping those portably for
+`sed` is a trap: the obvious `s/[.+]/\\&/g` emits a bare `&` under GNU sed, so
+the pattern became `0&9&0&f8fbd3` and matched nothing. Every pinned version then
+failed to resolve on Linux and WSL — while `latest`, which has no
+metacharacters, kept working — and the failure surfaced as the *"not published"*
+error listing the requested version among the available ones. The arch block is
+isolated first, its pairs are split onto separate lines, and the key is matched
+with quotes on both sides so `0.9.0` cannot hit `0.9.0+f8fbd3`.
+
+`start.sh` runs under `set -o pipefail`, so every `grep` in this lookup is
+guarded (`|| true`): an unmatched `grep` mid-pipeline would otherwise abort the
+script on exactly the path whose job is to print the diagnosis above.
+
 Two separate version files, deliberately not conflated:
 
 - `openserverless.txt` — the **cluster package** version (`0.1.0+f1553b`). Selects
