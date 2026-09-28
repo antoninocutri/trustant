@@ -145,6 +145,14 @@ user-provided endpoints (including Private AI) remain capability-driven and are 
 reasoning. An explicit `reasoning: false` always wins, including for Trustant
 Cloud.
 
+These flags only decide what Pi itself sends. The user controls thinking per
+browser with TruACP's **Thinking** selector (`none`, `true`, `false`, `low`,
+`medium`, `high`; default `true`), which the managed Pi extension applies by
+rewriting `reasoning_effort` on every provider request — see "Pi Thinking
+selector" in `acp/SPEC.md`. That is how an Ollama model declared
+`reasoning: false` can still be sent `reasoning_effort: "none"`, which GLM on
+Ollama needs to stop returning tool calls as raw text.
+
 When a provider does not return policy metadata (for example Private AI or
 own-host Ollama discovery), Trustant applies a conservative local policy:
 embedding/rerank/vector models, obvious tiny/small non-agent models, vision,
