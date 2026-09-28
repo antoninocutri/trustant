@@ -25,7 +25,8 @@ import (
 )
 
 // handleStatus proxies GET $AIP_BASE_URL/status?version=<appVersion> and
-// returns the response body unchanged. Used by the splash and applist pages
+// returns the response body, adding `trustant` from the legacy `trustable`
+// block when needed (see withLegacyTrustantCatalog). Used by the splash and applist pages
 // to receive per-provider model catalogs and operator banner messages.
 func handleStatus(w http.ResponseWriter, r *http.Request) {
 	if expiredGuard(w) {
@@ -61,7 +62,31 @@ func handleStatus(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
-	_, _ = w.Write(body)
+	_, _ = w.Write(withLegacyTrustantCatalog(body))
+}
+
+// withLegacyTrustantCatalog copies the pre-rebrand `trustable` provider block
+// to `trustant` when the ai-proxy has not been renamed yet, so every page can
+// read `status.trustant`. `trustant` wins when both exist; the legacy key is
+// kept. A body that is not a JSON object is returned unchanged.
+func withLegacyTrustantCatalog(body []byte) []byte {
+	var status map[string]json.RawMessage
+	if err := json.Unmarshal(body, &status); err != nil || status == nil {
+		return body
+	}
+	if _, ok := status["trustant"]; ok {
+		return body
+	}
+	legacy, ok := status["trustable"]
+	if !ok {
+		return body
+	}
+	status["trustant"] = legacy
+	out, err := json.Marshal(status)
+	if err != nil {
+		return body
+	}
+	return out
 }
 
 func writeStatusError(w http.ResponseWriter, msg string) {

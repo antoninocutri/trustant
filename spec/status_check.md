@@ -188,6 +188,14 @@ If `default` were absent or empty, `message` would be `""`.
 
 The set of provider names is whatever the operator declares in `AIP_CONFIG`. `trustant` and `ollama` are the names used in v1 — clients should treat the set as **open-ended**: new providers may appear in future config edits without an API version bump. Iterate over the top-level keys excluding `message` rather than hard-coding the two names.
 
+**Legacy key fallback.** The ai-proxy may still publish the Sovereign AI
+catalog under the pre-rebrand key `trustable`. Trustant's `GET /api/status`
+proxy therefore returns the upstream body with one normalization: when
+`trustant` is absent and `trustable` is present, the `trustable` block is also
+exposed as `trustant`. `trustant` is preferred whenever both exist, the
+`trustable` key is left in place, and a body that is not a JSON object is passed
+through unchanged. The fallback becomes a no-op once the proxy is renamed.
+
 A given model id appears under **exactly one** provider: the proxy rejects collisions at startup.
 
 ## Client recommendations
