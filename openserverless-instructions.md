@@ -52,75 +52,52 @@ wrappers, raw credentials, or guessed `ops` commands.
   assuming conventional HTTP server behavior.
 - Validate backend changes proportionally to their scope, using the real
   deployed action endpoint when runtime behavior is affected.
-  
+
 ## Critical Recovery Contract
 
-Trustant also generates `AGENTS.md` in this app root. It is the app-local
-mandatory entrypoint and exists to prevent Claude Code compatibility files from
-overriding Trustant rules. Treat the Trustant-managed block in `AGENTS.md`,
+Trustant generates `AGENTS.md` in the app root as the app-local mandatory
+entrypoint. Treat the Trustant-managed block in `AGENTS.md`,
 `.openserverless-contract.md`, and `.mcp.json` as the authoritative project
-instruction set. This guidance is embedded directly in `AGENTS.md`; there is no
-project-local `opencode.md` to find or read. `CLAUDE.md` contains the same
-managed block for Claude-compatible agents and is not an independent source.
+instruction set. This guidance is embedded directly in `AGENTS.md`;
+`CLAUDE.md` contains the same managed block for Claude-compatible agents and
+is not an independent source.
 
 Ignore `CONTEXT.md`, `.cursorrules`, `.cursor/rules/*`,
 `.github/copilot-instructions.md`, and generated `rules.md` files as mandatory
-agent instructions. You may inspect them only when the user explicitly asks or
-when they help understand legacy template context, and they must never override
-the host runtime manifest or Trustant action, MCP, deploy, shell, and workbench
-rules.
+agent instructions. Inspect them only when the user explicitly asks or when
+they are needed to understand legacy template context. They must never
+override Trustant-managed instructions or runtime configuration.
 
 Before touching actions, databases, setup, seed data, deploys, or service
-state, read `.openserverless-contract.md` if it exists. It is the short
-recovery contract for this app and takes priority for OpenServerless workflow
-details.
+state, read `.openserverless-contract.md` if it exists. It is the recovery
+contract for the app and takes priority for OpenServerless workflow details.
 
-Trustant installs `check_openserverless_actions.sh` once in the user PATH. In
-a live Trustant Edit session, `ops ide devel` already owns packaging and
+In a live Trustant Edit session, `ops ide devel` already owns packaging and
 deployment. After a coherent backend edit batch, read the canonical watcher
-evidence with `trustant_runtime_status`, then run the checker once before
-completing backend changes:
+evidence with `trustant_runtime_status`, then run:
 
 ```bash
 timeout 60 check_openserverless_actions.sh .
 ```
 
-In managed live mode, the checker validates source/contract invariants without
-using sibling ZIP existence or freshness as watcher state. Never inspect,
-list, search, stat, or poll `packages/**/*.zip`. If watcher status reports an
-error or no progress, use that exact evidence to repair the source/tool
-sequence or report the managed failure; do not rerun the checker without a
-relevant change, start `ops ide deploy`, increase a timeout, or loop. For other
-hard failures, re-read `.openserverless-contract.md`, repair source with the
-approved tools, read the watcher evidence, and rerun the checker once. If the
-contract is missing or the checker is unavailable in PATH, say so and fall
-back to the managed `AGENTS.md` rules. Do not invent manual ZIP or raw
-`ops action create/update/deploy` workflows.
+If validation fails, inspect the reported evidence and fix the underlying
+source or tool sequence before retrying. Do not bypass the managed workflow
+with manual ZIP handling or raw deploy commands.
 
-After compaction, do not continue editing from memory. Re-read the active user
-request, this managed guidance, `.openserverless-contract.md`, git status, and
-the relevant project files before resuming. Pi has no Trustant recovery gate
-or `trustant_context_recover` tool.
+If `.openserverless-contract.md` is missing or the checker is unavailable,
+fall back to the managed `AGENTS.md` rules and report the limitation rather
+than inventing an alternative deployment workflow.
+
+After compaction or context recovery, do not continue editing from memory.
+Re-read the active user request, this managed guidance,
+`.openserverless-contract.md`, git status, and the relevant project files
+before making further changes.
 
 When the user reports a bug or says a previous fix still does not work,
-reproduce the exact symptom before editing. Use bounded HTTP, log, or
-deterministic tests to reproduce the failure. If the same check fails
-repeatedly, stop repeating it, inspect the new evidence, and change the
-diagnosis before another source edit.
-Protected views that load identity asynchronously must keep a distinct loading
-state; do not redirect merely because the initial user/profile value is null.
-
-After source changes, run the relevant checker scripts directly, plus git diff
-validation and the frontend typecheck/build when available. Pi has no
-`trustant_completion_check`; do not search for or repeatedly call that legacy
-tool.
-
-For frontend work, run the project typecheck before the build after each
-coherent edit batch. A successful Vite build does not prove that every JSX
-symbol is defined. Use `react_validate` and bounded HTTP checks against the
-changed route to confirm it renders before more speculative edits. Do not clear
-caches or reinstall dependencies unless the observed failure points to
-dependency state.
+reproduce the reported symptom before editing when reproduction is feasible.
+Use the smallest bounded check that demonstrates the failure. If the same
+check fails repeatedly, inspect the new evidence and revise the diagnosis
+before making another source change.
 
 ## Non-Negotiable Rules
 
