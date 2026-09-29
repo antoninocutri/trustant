@@ -656,16 +656,22 @@ handle their response contract correctly.
 
 ## Browser-Opened And Printable Actions
 
-If the frontend opens an action URL directly with `window.open(...)`, an `<a>`
-link, or a form target, the endpoint must return a browser-native response. Do
-not return JSON that contains HTML and then claim the browser flow is complete.
+When the frontend opens an action URL directly with `window.open(...)`, an
+`<a>` link, or a form target, the endpoint must return a browser-native
+response. Returning application JSON that contains HTML does not make the
+endpoint directly browser-renderable.
+
+Preserve an existing working browser or print flow unless the requested change
+requires changing it.
 
 For printable HTML such as invoices, receipts, labels, reports, or documents,
-the correct behavior is one of these:
+use the response strategy supported by the generated wrapper and the existing
+application flow.
 
-1. The action returns a real HTML response:
+If the generated wrapper passes web-action envelopes through to OpenWhisk, the
+action may return a real HTML response:
 
-```python
+```python id="87p2oh"
 return {
     "statusCode": 200,
     "headers": {"Content-Type": "text/html; charset=utf-8"},
@@ -673,34 +679,36 @@ return {
 }
 ```
 
-This only works if the generated wrapper passes the envelope through to
-OpenWhisk. Verify with:
+When implementing or fixing this direct browser-opened flow, verify the actual
+HTTP response with a bounded check such as:
 
-```bash
+```bash id="5pjv66"
 curl -i http://localhost:5173/api/my/v1/<action>/<id>...
 ```
 
-The response must show `Content-Type: text/html`, and the body must begin with
-HTML, not with JSON.
+The response must have the expected HTML content type and return HTML rather
+than application JSON.
 
-2. If the wrapper nests module output as application JSON, keep the action JSON
-and change the frontend flow: fetch with `Authorization`, extract `data.html`,
-open a new window, write the HTML into that window, and then call print. In
-that case do not use raw `window.open("/api/my/...")` as proof that printing
-works.
+If the generated wrapper nests module output as application JSON, keep the
+action response as JSON and let the frontend perform the authenticated fetch.
+Extract the returned HTML, open a new window, write the HTML into that window,
+and print from there. Do not treat a raw
+`window.open("/api/my/...")` call as proof that this flow works.
 
-Avoid this broken pattern for direct browser-opened endpoints:
+For example, this is not a directly printable browser response:
 
-```python
+```python id="z3k4sw"
 return {"ok": True, "html": html}
 ```
 
-That renders as JSON in a new browser window. It is not a printable page.
+Do not put application session tokens in query parameters when an authenticated
+fetch can be used instead.
 
-Token-in-query is acceptable only when a new window cannot send the
-`Authorization` header. Prefer short-lived app-session tokens, and validate with
-a real session token from the app database or login flow. Do not use the
-OpenServerless `~/.ops/config.json` auth value as an app session token.
+If the existing application explicitly requires a direct browser-opened URL
+and no header-based authenticated flow is possible, use only its existing
+short-lived application-session mechanism. Never use OpenServerless platform
+credentials, including authentication values from `~/.ops/config.json`, as
+application session tokens.
 
 ## Authentication UI Rules
 
