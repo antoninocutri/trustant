@@ -828,20 +828,30 @@ implementing a requested change.
 
 ## Data And Service Restrictions
 
-Retrieve the current user with `ops util whoami` when needed. These
-restrictions are enforced by the platform:
+Apply these restrictions to the services involved in the requested change.
+Do not inspect or configure unrelated services merely to verify these
+restrictions.
+
+Retrieve the current user with `ops util whoami` only when the user-specific
+service name or namespace is needed.
 
 - PostgreSQL database is named after the user; the default schema is
   `<user>_schema`.
 - Milvus database is named after the user.
-- MongoDB is available only when the official post-login config exposes a
-  MongoDB block or derived connection string.
+- MongoDB may be used only when the official MongoDB capability is configured.
 - Redis keys used by actions must be built with the generated
-  `ctx.REDIS_PREFIX`; do not guess `<user>:` manually and do not use naked keys.
-- S3 writable buckets are `<user>-data` for private app data and `<user>-web`
-  for public web assets.
-- The S3 MCP cannot list buckets, so assume only the two user buckets above are
-  writable.
+  `ctx.REDIS_PREFIX`. Do not guess `<user>:` manually and do not use naked
+  Redis keys.
+- S3 writable application buckets are `<user>-data` for private app data and
+  `<user>-web` for public web assets.
+- The S3 MCP cannot list buckets. Treat `<user>-data` and `<user>-web` as the
+  writable application buckets defined by the platform; do not probe for or
+  invent additional writable buckets.
+
+`OPS_USER`, `OPS_PASSWORD`, `OPS_APIHOST`, `OPS_REPO`, and `OPS_SKILLS` are
+Trustant-managed orchestration variables, not application secrets. Never bind
+or expose them as application secrets or action runtime values, and never copy
+their values into application source, frontend code, or documentation.
 
 ## Validation Checklist
 
