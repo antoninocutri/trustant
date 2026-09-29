@@ -528,9 +528,11 @@ not in public application actions.
 
 ## Skills
 
-App-specific skills may be installed under `.agents/skills`. Read relevant
-`SKILL.md` files before using them. Do not delete or replace `.agents/skills`
-unless the user explicitly asks to update skills.
+When an installed app-specific skill is relevant to the requested task, inspect
+the corresponding `.agents/skills/<skill>/SKILL.md` and follow its
+instructions.
+
+Do not inspect or load unrelated skills.
 
 ## Web Action Request Rules
 
