@@ -769,37 +769,35 @@ login/register/session/logout set.
 
 ## Setup And Data Initialization
 
-- All initialization belongs in private actions in package `setup`.
-- Setup actions must be incremental, idempotent, and non-destructive.
-- Table creation belongs in `setup/database`.
-- Redis key preparation belongs in `setup/cache`.
+Persistent application initialization belongs in private actions in package
+`setup`.
+
+Create or modify only the setup actions required by the requested change and
+the services actually used by the application. Do not create setup actions for
+unused services or for hypothetical future needs.
+
+Setup actions must be incremental, idempotent, and non-destructive. They must
+preserve existing application data unless the user explicitly requests a data
+reset or destructive migration.
+
+Use the setup action appropriate to the required initialization:
+
+- PostgreSQL schema and table creation belong in `setup/database`.
+- Redis key or cache initialization belongs in `setup/cache`.
 - Milvus collection creation belongs in `setup/collection`.
-- MongoDB collection/index preparation belongs in an idempotent setup action
-  only when MongoDB is configured.
+- MongoDB collection and index preparation belongs in an idempotent setup
+  action only when MongoDB is configured and required by the application.
 - Private S3 data preload belongs in `setup/upload`.
 - Public web assets belong in `public/`, not in setup uploads.
-- Wait for the managed watcher and run the action checker after creating or
-  changing actions, then run `ops ide setup` when setup actions changed.
-- `ops ide setup` must succeed before setup work is complete.
-- If setup returns `Cannot start action. Check logs for details.`, immediately
-  run `timeout <seconds> ops logs --last` and fix the first traceback. Do not
-  proceed by mutating the service directly.
-- Do not create missing tables or seed rows with PostgreSQL MCP write tools and
-  then claim setup succeeded. The `setup/*` action must be able to recreate the
-  state idempotently.
-- Do not make a live DB-only schema fix with `psql`, PostgreSQL MCP, or ad hoc
-  SQL and then claim the app is fixed. If you inspect or repair live state while
-  debugging, put the equivalent idempotent migration in `setup/database`, run
-  `ops ide setup`, and read back the schema/data through a bounded command.
 
-Examples of idempotent setup:
+Do not perform schema creation, collection creation, persistent cache
+initialization, or seed-data initialization from public application actions.
 
-- `CREATE TABLE IF NOT EXISTS ...`
-- `ALTER TABLE ... ADD COLUMN IF NOT EXISTS ...`
-- Redis `SET ... NX` for keys that should only be seeded once.
-- Check Milvus collection existence before creating it.
-- Check MongoDB collection/index existence before creating it.
-- Upload S3 objects only when missing or changed.
+Do not add seed, demo, or example data unless it is required by the requested
+application behavior.
+
+When setup actions are created or changed, follow the managed watcher,
+checker, and `ops ide setup` workflow defined earlier in this guide.
 
 ## Dependencies
 
