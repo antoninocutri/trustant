@@ -231,12 +231,13 @@ configured platform services according to these roles:
 - Do not use Milvus as a replacement for MongoDB.
 - Use the Agentic React MCP only when the Vite config imports/references
   `@agentic-react/vite` and invokes `AgenticReact()`.
-  
+
 ## OpenServerless Action Tools
 
-Use the Trustant/OpenServerless MCP action tools instead of manually creating
-platform scaffolding. Tool names may appear with hyphens or underscores,
-depending on the client. Use the matching exposed tool:
+When the requested change requires creating or configuring an OpenServerless
+action, use the Trustant/OpenServerless MCP action tools instead of manually
+creating platform scaffolding. Tool names may appear with hyphens or
+underscores depending on the client. Use the matching exposed tool:
 
 - `action-new` / `action_new`: create public or private actions and generated
   wrappers. Repeated creation of a compatible existing action is a successful
@@ -258,19 +259,16 @@ depending on the client. Use the matching exposed tool:
   previously deployed parameters remain, report that a Trustant-owned full
   redeploy is required; do not race the watcher with raw deploy commands.
 
-If a tool call returns "Invalid Tool", stop and use one of the exposed tool
-names. Do not retry with guessed aliases. If a shell command reports
-`no command named ...`, do not keep guessing `ops` subcommands; use the MCP
-action tools above or inspect the available task list with bounded commands.
+If a tool call returns "Invalid Tool", stop and use only an exposed tool name.
+Do not retry with guessed aliases. If a shell command reports
+`no command named ...`, do not keep guessing `ops` subcommands; use the
+documented MCP action tools instead.
 
-Do not create or mutate ZIP files under `packages/`; they are generated beside
-action directories by the managed watcher. Do not use `ops action deploy`; it
-is not an app workflow command. Do not use
-`ops action update`, `ops action create`, or raw `ops action` commands as the
-normal deploy path for edited app modules. After changing any action, including
-setup actions, wait for the managed watcher and run the checker. After changing
-setup actions, run `timeout <seconds> ops ide setup` only after the checker
-confirms current archives.
+After changing an action, let the managed watcher produce the derived
+artifacts and run the action checker before runtime validation. If a setup
+action changed, run `ops ide setup` only after the checker passes. Never use
+raw `ops action` commands or manual ZIP manipulation as an alternative deploy
+path.
 
 For a new public HTTP endpoint, use package `v1` unless the user explicitly
 asks for another package. The endpoint is reachable at
