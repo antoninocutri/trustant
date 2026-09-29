@@ -321,23 +321,26 @@ simulate routes. They are not valid Trustant/OpenServerless endpoints.
 ## MCP Servers And Service Access
 
 `.mcp.json` is regenerated at launch with an `mcpServers` object. Pi exposes
-those servers through one lazy `mcp` proxy tool; use `mcp({})` to inspect server
-status and `mcp({ server: "mongodb" })` to list one server's tools. A missing
-direct tool name or an MCP process that has not started does not mean the server
-is absent. Use the generated configuration and wrappers instead of inventing
-connection details.
+those servers through one lazy `mcp` proxy tool; use `mcp({})` to inspect
+server status and `mcp({ server: "<server>" })` to list a server's tools.
+
+A missing direct tool name or an MCP process that has not started does not
+mean the server is absent. MCP servers start lazily on first use. Before
+reporting a configured service as missing, check both the `mcp` proxy and the
+keys of `.mcp.json.mcpServers`.
+
+Available servers depend on the current Trustant configuration:
 
 - `openserverless`: always present; exposes action-management tools.
 - `react`: always present; read-only deterministic source validation for the
   current React/Vite workbench. Use `react_project_inspect`,
   `react_validate_routes`, `react_validate_auth_flow`, and the aggregate
-  `react_validate`. Resolve errors before declaring the change done.
+  `react_validate` when relevant to the requested change.
 - `agentireact`: present only when `vite.config.js` or `vite.config.ts`
   imports/references `@agentic-react/vite` and invokes `AgenticReact()` in
-  executable config code; HTTP MCP at `http://localhost:5173/mcp`. Comments,
-  strings, wrong packages, and the obsolete `AgentiReact()` spelling do not
-  enable it. Adding the plugin during a live session requires relaunching the
-  app so Trustant regenerates `.mcp.json`.
+  executable config code. Comments, strings, wrong packages, and the obsolete
+  `AgentiReact()` spelling do not enable it. Adding the plugin during a live
+  session requires relaunching the app so Trustant regenerates `.mcp.json`.
 - `s3`: present only when S3 is configured; companion CLI wrapper: `rclone`.
 - `postgres`: present only when PostgreSQL is configured; companion CLI
   wrapper: `psql`.
@@ -348,62 +351,57 @@ connection details.
 - `mongodb`: present only when MongoDB is configured as an official
   OpenServerless capability in `~/.ops/config.json`.
 
-Service MCP servers are generated from `~/.ops/config.json` after
-`ops ide login`. If a service block is missing, the corresponding MCP server is
-intentionally absent. Do not hardcode service hosts, ports, credentials, bucket
-names, database names, or tokens when the MCP server or generated environment
-already provides them.
+Service MCP access and action runtime access are separate capabilities. A
+successful MCP call proves only that the assistant can inspect the service; it
+does not prove that an application action can access it.
 
-MCP servers are assistant-side tools. They do not automatically create runtime
-environment variables, action parameters, or `ctx` bindings inside Python
-actions. A successful service MCP call proves only that the assistant can
-inspect that service; it is not proof that the app action can use the same
-connection. For action runtime access, use the OpenServerless action service
-tools such as `action-add-redis`, `action-add-postgresql`, `action-add-s3`,
-`action-add-milvus`, and `action-add-mongodb`. If no matching action service
-tool or generated runtime binding exists, the app must expose a deterministic
-`non configurato`/error state instead of inventing a backend connection.
+For action runtime access, use the matching OpenServerless action service tool
+and its generated `ctx` binding, such as `action-add-redis`,
+`action-add-postgresql`, `action-add-s3`, `action-add-milvus`, or
+`action-add-mongodb`. If no matching runtime binding exists, do not invent a
+backend connection.
 
-MongoDB is a document database capability, separate from Milvus/vector search.
-If the user asks for MongoDB and the `mongodb` MCP server or official MongoDB
-environment is absent, implement a deterministic `non configurato`/error state
-in the app and README. Do not ask the user how to configure MongoDB, do not
-invent connection details, and do not use Milvus, `MILVUS_*`, `pymilvus`, or
-`milvus_cli` as a substitute.
+Service MCP servers are generated from the Trustant/OpenServerless
+configuration after `ops ide login`. Do not hardcode service hosts, ports,
+credentials, bucket names, database names, tokens, or other connection details
+when platform wiring provides them.
 
-When `action-add-mongodb` / `action_add_mongodb` is exposed, use it to generate
-the MongoDB wrapper before writing module code. The generated wrapper exposes
-`ctx.MONGODB_CLIENT` and `ctx.MONGODB`; business modules should use those
-context values instead of reading connection strings directly.
+MongoDB is a document database capability and is separate from Milvus/vector
+search. Never use Milvus as a substitute for MongoDB.
 
-Do not use `MDB_MCP_CONNECTION_STRING` in app source, action modules, wrappers,
-README instructions, or frontend code. That variable belongs only to the
-generated MongoDB MCP server process. Do not invent `MONGODB_URI`, `MONGO_URL`,
-`MONGO_CONNECTION_STRING`, `MDB_CONNECTION_STRING`, or similar MongoDB runtime
-variables unless a generated action wrapper already exposes an official MongoDB
-runtime binding. If MongoDB is visible only through the MCP server and not
-through an action service tool/runtime binding, report MongoDB as
-`non configurato` in the app path.
+If the requested behavior requires MongoDB but the official MongoDB capability
+or runtime binding is unavailable, expose a deterministic
+`non configurato`/error state in the affected app path and report the
+limitation. Do not invent connection details or MongoDB runtime environment
+variables.
 
-You may inspect `~/.ops/config.json` only to understand which services exist.
-Do not copy values from it into app code, wrapper code, logs, docs, or frontend
-configuration.
+When `action-add-mongodb` / `action_add_mongodb` is available, use it before
+writing module code that requires MongoDB. The generated wrapper exposes
+`ctx.MONGODB_CLIENT` and `ctx.MONGODB`; editable modules should use those
+context values rather than connection strings.
 
-The `mcp` proxy starts server processes lazily on first use. Never report a
-configured service as missing before checking both `mcp({})` and the keys of
-`.mcp.json.mcpServers`.
+`MDB_MCP_CONNECTION_STRING` belongs only to the generated MongoDB MCP server
+process and must not be used by application source, action modules, generated
+wrappers, documentation, or frontend code.
 
-Service MCP servers are diagnostic and verification aids. They must not replace
-the app's own setup actions or public API paths. Do not use `postgres_execute_sql`
-or other service MCP write operations to create schemas, seed records, repair
-state, or mark a feature complete unless the user explicitly asks for an
-administrative data repair. For normal app work, fix the setup/action code and
-rerun the app path. Read-only MCP checks such as listing tables or selecting
-rows are fine as supporting evidence after the app path succeeds.
+You may inspect `~/.ops/config.json` only to determine which services are
+configured. Never copy values from it into application code, wrapper code,
+logs, documentation, or frontend configuration.
 
-When inspecting PostgreSQL through MCP, use the exact exposed tool names. For
-schemas use `postgres_list_schemas`. For tables/views in a schema use
-`postgres_list_objects`. Do not call generic names such as `list_schemas`.
+Service MCP servers are discovery and verification tools. Do not use direct
+service mutation operations to create schema, seed records, repair application
+state, or substitute for the application's setup and public action paths,
+unless the user explicitly requests an administrative data repair.
+
+For normal application work, put idempotent initialization in setup actions
+and application writes in public OpenServerless actions. Read-only MCP checks
+are appropriate when they provide relevant implementation or validation
+evidence.
+
+When inspecting PostgreSQL through MCP, use the exact exposed tool names. Use
+`postgres_list_schemas` for schemas and `postgres_list_objects` for
+tables/views in a schema. Do not invent generic tool names such as
+`list_schemas`.
 
 ## Application Environment And Redis Authentication
 
