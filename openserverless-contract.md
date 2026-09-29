@@ -172,19 +172,27 @@ Invalid examples:
   If live state is inspected or repaired during debugging, put the equivalent
   reproducible change in the appropriate application/setup source and validate
   that source path.
-  
+
 ## Web Action Route IDs
 
-- The OpenServerless MCP tools create actions and service wiring; they do not
-  replace this runtime contract.
-- For item routes such as `/api/my/v1/contacts/123`, do not assume one fixed
-  `__ow_path` shape.
-- Use a helper that accepts body fallback and suffix forms such as `123`,
-  `/123`, `/contacts/123`, and `/api/my/v1/contacts/123`.
-- A `PUT` fix that works only because the frontend sends `id` in the JSON body
-  is incomplete if `DELETE /api/my/v1/<resource>/<id>` still fails.
-- For each CRUD resource, test create/list/update/delete through
-  `http://localhost:5173`, including `PUT` and `DELETE` with id in the URL.
+When an action implements REST-style item routes such as
+`/api/my/<package>/<action>/<id>`, do not assume one fixed `__ow_path` shape.
+
+Extract the resource id from the request path and handle the path forms that
+the OpenServerless runtime may provide, including forms equivalent to:
+
+- `<id>`
+- `/<id>`
+- `/<action>/<id>`
+- `/api/my/<package>/<action>/<id>`
+
+Support an id supplied in the request body only when the existing API contract
+requires that fallback. Do not use a body id as proof that an item route with
+the id in the URL works.
+
+Validate the item-route operations affected by the requested change using the
+actual URL path. When a complete CRUD resource is newly implemented or
+substantially restructured, validate the complete CRUD flow.
 
 ## Browser And Printable Responses
 
