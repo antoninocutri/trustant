@@ -504,34 +504,27 @@ curl http://localhost:5173/api/my/<package>/<action>
 
 ## PostgreSQL Action Pattern
 
-After `action-add-postgresql` / `action_add_postgresql`, the generated wrapper
-adds PostgreSQL wiring and exposes a live `psycopg` connection as
-`ctx.POSTGRESQL`.
+When an action requires PostgreSQL access, first add PostgreSQL wiring with
+`action-add-postgresql` / `action_add_postgresql`. The generated wrapper
+provides the configured client as `ctx.POSTGRESQL`.
 
-In the editable module:
-
-- Use `conn = ctx.POSTGRESQL`.
-- Do not import `psycopg2`.
-- Do not call `psycopg2.connect(ctx.POSTGRESQL)` or reconnect using
-  `ctx.POSTGRESQL`; it is already a connection object.
-- Do not manually edit `__main__.py` to add database wiring. Use the
-  PostgreSQL action tool.
-- Do not hardcode PostgreSQL connection strings, usernames, passwords, hosts,
-  or schemas in module code or wrappers.
-
-Use this pattern or an equivalent one:
+Use the generated client directly from the editable action module:
 
 ```python
-def main(args, ctx=None):
-    if not ctx or not hasattr(ctx, "POSTGRESQL"):
-        return {"ok": False, "error": "Database not configured"}
-
-    conn = ctx.POSTGRESQL
-    with conn.cursor() as cur:
-        cur.execute("CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY)")
-    conn.commit()
-    return {"ok": True}
+def main(args, ctx):
+    db = ctx.POSTGRESQL
+    rows = db.execute("SELECT id, email FROM users ORDER BY id")
+    return {
+        "statusCode": 200,
+        "body": {"users": rows},
+    }
 ```
+
+Do not open a new database connection manually and do not hardcode database
+connection details.
+
+Schema creation, migrations, and seed data belong in private setup actions,
+not in public application actions.
 
 ## Skills
 
