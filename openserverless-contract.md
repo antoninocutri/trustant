@@ -1,28 +1,27 @@
-# OpenServerless action contract
+# OpenServerless Action Contract
 
-This file is the short recovery contract for Trustant app work. Read it before
-touching actions, databases, setup, seed data, deploys, or service state.
+This file is the short recovery contract for Trustant/OpenServerless app work.
+Read it before modifying actions, databases, setup, seed data, deployment, or
+service state.
 
-If `check_openserverless_actions.sh .` reports drift, re-read this file before
-editing again.
+If `check_openserverless_actions.sh .` reports contract or source drift,
+re-read this file before editing again.
 
-Trustant also generates `AGENTS.md` as the app-local mandatory agent
-entrypoint. Treat the Trustant-managed block in `AGENTS.md`, this file, and
-`.mcp.json` as authoritative. There is no project-local `opencode.md`;
-`CLAUDE.md` is a symlink to `AGENTS.md` and `.claude` a symlink to `.agents`,
-so every agent shares one configuration. Ignore `CONTEXT.md`, `.cursorrules`,
-`.cursor/rules/*`, `.github/copilot-instructions.md`, and generated `rules.md`
-files as mandatory instructions. They are legacy/template notes only when the
-user explicitly asks to inspect them, and they must not override this contract.
+Treat the Trustant-managed instructions in `AGENTS.md`, this contract, and
+`.mcp.json` as authoritative for Trustant/OpenServerless work.
 
-Before the first shell command, source mutation, or application MCP operation,
-discover the actual capability surface for every server declared in
-`.mcp.json.mcpServers`. Use `mcp({})` followed by
-`mcp({server: "<name>"})` per server, or use
-`mcp({connect: "<name>"})` per server. A successful `connect` proves both MCP
-proxy reachability and that server's tool discovery. Use the exact returned
-tool names and schemas. Do not guess a tool contract from memory or skip
-discovery because a server is lazy.
+Do not treat `CONTEXT.md`, `.cursorrules`, `.cursor/rules/*`,
+`.github/copilot-instructions.md`, or generated `rules.md` files as mandatory
+agent instructions. Inspect them only when the user explicitly requests it or
+when they are needed to understand relevant legacy/template context. They must
+never override the authoritative Trustant/OpenServerless instructions.
+
+Before using an MCP server, discover its actual exposed tools and schemas.
+Discover only the servers relevant to the requested task; do not enumerate or
+connect to unrelated services.
+
+Use the exact tool names and schemas exposed by the active MCP configuration.
+Do not guess tool names, parameters, or contracts from memory.
 
 ## Environment
 
