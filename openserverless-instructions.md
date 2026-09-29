@@ -801,25 +801,30 @@ checker, and `ops ide setup` workflow defined earlier in this guide.
 
 ## Dependencies
 
-- Add frontend dependencies to `package.json`, then run `npm install`.
-- Add Python dependencies only with `action-requirements`.
-- Never create a virtualenv (`python -m venv`, `virtualenv`, `uv venv`, or any
-  `.venv`/`venv` directory) and never create or edit a `requirements.txt`.
-  Actions are built and deployed server-side, so a local virtualenv is never
-  used at runtime — it only leaves artifacts that Clean has to remove.
-  `action-requirements` is the only supported path.
-- Before importing a non-stdlib Python package such as `bcrypt`, `jwt`,
-  `requests`, or a database driver, add it with `action-requirements` and
-  redeploy the action.
-- If action logs show `ModuleNotFoundError`, fix the dependency or import before
-  doing any other validation. Do not mark the feature complete.
-- Add PostgreSQL, Redis, S3, Milvus, MongoDB, and secrets with the corresponding
-  action/service tool. Do not hardcode credentials and do not manually edit
-  generated wrapper code.
-- `OPS_USER`, `OPS_PASSWORD`, `OPS_APIHOST`, `OPS_REPO`, and `OPS_SKILLS` are
-  Trustant-managed orchestration variables, not application secrets. Never
-  pass them to `action-add-secret`, `secret-bind`, `secret-ensure`, or
-  `auth-setup`; a secret tool must reject them.
+Add dependencies only when they are required by the requested implementation
+and the existing project does not already provide the needed capability.
+
+For a required frontend dependency that is not already present, add it to
+`package.json` and use the project's existing npm workflow.
+
+Add Python dependencies only with
+`action-requirements` / `action_requirements`.
+
+Never create a Python virtual environment with `python -m venv`,
+`virtualenv`, `uv venv`, or a `.venv`/`venv` directory, and never create or
+edit `requirements.txt` for OpenServerless actions. Action dependencies are
+managed through `action-requirements` and deployed with the action.
+
+Before importing a non-standard-library Python package, verify that the action
+already has the dependency. If not, add it with `action-requirements`.
+
+If an action fails with `ModuleNotFoundError`, determine whether the import is
+required. If it is, add the missing dependency with `action-requirements`;
+otherwise correct or remove the invalid import. Do not continue runtime
+validation while the required import is unresolved.
+
+Do not add, upgrade, replace, or reinstall unrelated dependencies while
+implementing a requested change.
 
 ## Data And Service Restrictions
 
