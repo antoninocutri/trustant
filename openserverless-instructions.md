@@ -159,12 +159,12 @@ before making another source change.
 - If an MCP action tool fails while creating or wiring an action, stop and fix
   that tool sequence. Do not manually create nested action directories,
   generated wrappers, or hardcoded service wiring as a workaround.
-  
+
 ## Project Layout
 
 - `src/`: React/TypeScript frontend.
 - `public/`: public web assets uploaded automatically.
-- `packages/<package>/<action>/`: Python action directories.
+- `packages/<package>/<action>/`: OpenServerless Python action directories.
 - `packages/<package>/<action>/<module>.py`: editable action logic.
 - `packages/<package>/<action>/__main__.py`: generated wrapper, do not edit.
 - `packages/setup/<action>/`: private setup actions.
