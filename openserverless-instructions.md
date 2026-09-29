@@ -855,47 +855,76 @@ their values into application source, frontend code, or documentation.
 
 ## Validation Checklist
 
-End backend-related work with proof:
+Validate proportionally to the requested change. Run the smallest set of
+checks that proves the requested behavior works and that the modified code
+remains valid. Do not expand validation into unrelated features or services.
 
-- After changing an action module, wait for the managed watcher to settle.
-- Run `timeout 60 check_openserverless_actions.sh .` after that wait when the
-  checker is available. On stale archives, perform only one bounded wait and
-  recheck before reporting a watcher failure.
-- After changing setup actions, wait for the watcher, pass the checker, and then
-  run `ops ide setup`.
-- Validate public actions with bounded HTTP checks against
-  `http://localhost:5173/api/my/<package>/<action>` from inside this pod.
-- For CRUD resources, validate the full create/list/update/delete matrix. Test
-  `PUT /api/my/v1/<resource>/<id>` and
-  `DELETE /api/my/v1/<resource>/<id>` without relying only on `id` in the JSON
-  body, then read back to confirm the updated value or deleted absence.
-- For browser-opened or printable endpoints, validate with `curl -i` and prove
-  the response status and content type match the browser use case. A direct
-  `window.open("/api/my/...")` target for printable HTML must not return
-  `application/json`.
-- Use `vite.<domain>` only after managed deployment is confirmed and only for
-  explicit external browser/ingress checks.
-- `ops action invoke` by itself is not enough proof when it only prints an
-  activation id such as `ok: invoked ...`; inspect the action result/logs or
-  validate through the HTTP endpoint.
-- If any action reports `Cannot start action`, `application error`, or
-  `developer error`, run `timeout <seconds> ops logs --last` before changing
-  strategy.
-- If `psql` or a service MCP was used to inspect or repair live database state,
-  prove the source setup/action code recreates that state. Runtime state alone
-  is not completion proof.
-- Verify JSON request fields, method, and headers are visible to the action.
-- Verify frontend fetch handling accepts the response shape actually returned.
-- Treat editor, LSP, TypeScript, lint, and tool diagnostics as validation
-  failures when they mention generated or edited files. Fix the diagnostic, or
-  explain why it is stale with a successful bounded command that proves it.
-- Use bounded checks such as `timeout <seconds> ...` and `curl`.
-- Do not hide validation failures with `|| true`, forced zero exits, or output
-  truncation that can mask the first error. Let checks fail loudly, then fix the
-  failure.
-- For frontend auth flows, validate both route shape and route behavior: root
-  path, login path, register path, direct protected route while logged out, and
-  protected navigation after login. After submitting valid credentials, assert
-  that the protected page is visibly rendered without requiring a reload.
-- If validation is impossible, state the blocker instead of asking the user to
-  "try it now" with no local proof.
+For OpenServerless action changes:
+
+- After a coherent action change batch, wait for the managed watcher and run
+  `timeout 60 check_openserverless_actions.sh .` when the checker is
+  available.
+- When setup actions changed, run `ops ide setup` only after the checker
+  passes. Required setup must succeed before setup-related work is complete.
+- When runtime behavior changed, validate the affected public action with a
+  bounded HTTP check against
+  `http://localhost:5173/api/my/<package>/<action>`.
+- If an action reports `Cannot start action`, `application error`, or
+  `developer error`, inspect the bounded action logs before changing the
+  implementation strategy.
+- An invocation that returns only an activation id is not proof of application
+  behavior. When behavior must be verified, inspect the result or validate the
+  relevant public endpoint.
+
+For request and API behavior:
+
+- Validate the HTTP methods, request fields, headers, route parameters, and
+  response shapes affected by the requested change.
+- For CRUD work, validate the operations affected by the requested change.
+  When implementing or restructuring a complete CRUD resource, validate the
+  complete create/list/update/delete flow.
+- When REST-style item routes are part of the change, validate the actual item
+  path such as `PUT /api/my/v1/<resource>/<id>` or
+  `DELETE /api/my/v1/<resource>/<id>` rather than proving only a body-based
+  fallback.
+- When frontend code consumes a changed backend response, verify that it
+  handles the response shape actually returned.
+
+For frontend behavior:
+
+- Validate the routes and UI states affected by the requested change using the
+  relevant React validation and bounded checks against the Trustant-managed
+  app.
+- For authentication changes, validate only the authentication and protected
+  states involved in the requested flow, including direct access to affected
+  protected routes when relevant.
+- For browser-opened or printable endpoints, verify the actual HTTP status,
+  content type, and body shape when those properties are part of the requested
+  behavior.
+- Use `vite.<domain>` only when external browser or ingress behavior is in
+  scope and managed deployment is confirmed.
+
+For service-backed behavior:
+
+- If live service state was modified during debugging, verify that the
+  corresponding application or setup source can reproduce the required state.
+  Runtime state alone is not completion proof.
+- When the requested change affects S3 read/write behavior, validate it through
+  the configured application action path. If a direct read/write probe is
+  needed, use a unique temporary object in `ctx.S3_DATA`, read it back, compare
+  its contents, and delete it afterward. Do not use bucket listing as proof of
+  read/write access.
+
+For source validation:
+
+- Treat diagnostics in files changed by the task as failures when they indicate
+  a real problem in the modified code.
+- Do not fix unrelated pre-existing diagnostics, warnings, or lint issues
+  unless they prevent validation of the requested change.
+- Use bounded checks and let failures remain visible. Do not hide failures with
+  forced successful exits or output truncation that can mask the relevant
+  error.
+
+If the required validation cannot be performed with the available tools or
+environment, report the specific blocker and the validation that remains
+unproven rather than claiming completion.
