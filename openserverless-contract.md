@@ -105,73 +105,74 @@ Invalid examples:
 - `v1/employees_photo`
 - `packages/v1/auth/register`
 
-## Database Rules
+## Data, Authentication, And Service Rules
 
 - Application `.env` and `.env.production` are immutable agent boundaries.
-  Never read, create, edit, import, synchronize, or regenerate them. Only the
-  user may change application environment values through the Trustant
-  configuration interface. Report a missing variable without creating it.
-- Application authentication uses Redis-backed opaque sessions, not JWT or an
-  application signing secret. Create every login, registration, `me`/session,
-  protected-resource, and logout endpoint, then call `auth-setup` /
-  `auth_setup` once with the complete endpoint sets. It atomically adds Redis
-  wiring without reading or writing `.env`; use `action-add-redis` /
-  `action_add_redis` only for individual non-authentication Redis endpoints.
-  Generate an opaque random token, store its token-to-identity mapping in Redis
-  with a bounded TTL, validate it on every protected request, and delete it on
-  logout.
-- Every authentication/session key must use `ctx.REDIS_PREFIX`. The browser
-  stores only the opaque token; the backend derives identity from the Redis
-  record and never trusts a browser-supplied user id.
-- `OPS_USER`, `OPS_PASSWORD`, `OPS_APIHOST`, `OPS_REPO`, and `OPS_SKILLS` are
-  Trustant-managed runtime variables, not application secrets. Secret tools
-  must reject them and must not add them to generated action wrappers.
-- Add PostgreSQL wiring with the OpenServerless action tool.
-- Use `conn = ctx.POSTGRESQL` in editable action modules.
-- Do not reconnect with `POSTGRES_URL` when `ctx.POSTGRESQL` is provided.
-- Service MCP servers are assistant-side diagnostics. They do not automatically
-  create runtime env vars, action params, or `ctx` bindings inside Python
-  actions.
-- MongoDB is a separate document database capability. Use it only when the
-  official MongoDB capability is present in generated config/environment.
-- If `action-add-mongodb` / `action_add_mongodb` is exposed, use it to generate
-  the MongoDB wrapper and use `ctx.MONGODB_CLIENT` or `ctx.MONGODB` in business
-  modules.
-- One action may legitimately use MongoDB and Milvus as separate capabilities.
-  In that case use the official `ctx.MONGODB_CLIENT` / `ctx.MONGODB` binding for
-  MongoDB and `ctx.MILVUS` for vector operations; the presence of both services
-  is not, by itself, a MongoDB substitution error.
-- If MongoDB is absent, show `non configurato` or an error state and document
-  that state. Do not ask the user for infrastructure details and do not use
-  Milvus/vector search as a substitute for MongoDB.
-- Do not use `MDB_MCP_CONNECTION_STRING` in app source or action code. It is
-  only the MongoDB MCP server's private environment variable, not an app runtime
-  binding.
-- Do not invent MongoDB runtime env vars such as `MONGODB_URI`, `MONGO_URL`, or
-  `MDB_CONNECTION_STRING` unless a generated action wrapper already exposes an
-  official MongoDB binding.
-- Add Redis wiring with `action-add-redis` / `action_add_redis`. The generated
-  wrapper exposes `ctx.REDIS` and `ctx.REDIS_PREFIX`; every Redis key used by
-  action modules must be built from `ctx.REDIS_PREFIX` plus an app-local suffix.
-  Do not call `ctx.REDIS.get/set/delete/hset/...` with naked keys.
-- Use S3 app behavior through `action-add-s3` and generated action wiring.
-  Credentials are bucket-scoped: never call `ctx.S3_CLIENT.list_buckets()`.
-  `head_bucket` and listing do not prove read/write access. Verify with a unique
-  temporary key in `ctx.S3_DATA`: `put_object`, `get_object` and compare bytes,
-  then `delete_object` in `finally`. Report read/write success only after the
-  comparison succeeds; otherwise report the real error.
-- Do not hardcode database URLs, hosts, users, passwords, schemas, buckets, or
-  service ports in source code.
-- Every write must commit.
-- Every demo seed must be idempotent and use a seed marker table or equivalent
-  durable marker.
-- Migrations must be repeatable. Use `IF NOT EXISTS` where possible.
-- Drop/recreate derived views when their column shape changes.
-- Do not make a live DB-only schema fix with `psql`, PostgreSQL MCP, or ad hoc
-  SQL and then declare the app fixed. If you inspect or repair live state while
-  debugging, put the equivalent idempotent migration in `setup/database`, run
-  `ops ide setup`, then read back the schema/data.
+  Never read, create, edit, import, synchronize, or regenerate them. Report a
+  required missing application variable instead of creating it.
 
+- When the requested application requires authentication, use Redis-backed
+  opaque sessions, not JWT or an application signing secret. Create only the
+  authentication/session endpoints required by the requested flow and
+  configure the participating authentication and protected endpoints through
+  `auth-setup` / `auth_setup`.
+
+- Generate opaque random session tokens, store token-to-identity mappings in
+  Redis with a bounded TTL, validate the session on protected requests, and
+  delete the session on logout when logout is part of the requested flow.
+  Authentication/session Redis keys must use `ctx.REDIS_PREFIX`. The backend
+  derives identity from the session and never trusts a browser-supplied user
+  id.
+
+- Trustant-managed `OPS_*` orchestration variables are not application
+  secrets. Do not pass them to application secret tools or generated secret
+  bindings.
+
+- Service MCP servers are assistant-side discovery and diagnostic tools. Their
+  presence does not create runtime environment variables, action parameters,
+  or `ctx` bindings. Add required runtime service wiring through the
+  corresponding OpenServerless action/service tool.
+
+- For PostgreSQL actions, use generated PostgreSQL wiring and
+  `ctx.POSTGRESQL`. Do not create a separate connection from environment
+  variables when the generated binding is available.
+
+- MongoDB may be used only when the official MongoDB capability is configured.
+  When required, use generated MongoDB action wiring and its official
+  `ctx.MONGODB_CLIENT` / `ctx.MONGODB` binding. Do not use MCP-private
+  connection variables or invent MongoDB runtime environment variables.
+
+- If a required service is not configured, report the missing capability
+  rather than inventing connection details or substituting another service.
+
+- For Redis actions, use generated Redis wiring through `ctx.REDIS` and
+  construct every application key from `ctx.REDIS_PREFIX` plus an app-local
+  suffix. Never use naked Redis keys.
+
+- For S3 actions, use generated S3 wiring and its scoped application buckets.
+  Never use `ctx.S3_CLIENT.list_buckets()` for service discovery.
+
+- Do not hardcode database URLs, service hosts, users, passwords, schemas,
+  bucket names, or service ports when platform wiring provides them.
+
+- For transactional database writes, commit the intended transaction before
+  reporting success.
+
+- Create seed data only when required by the requested application behavior.
+  Seed operations must be idempotent and must not duplicate existing data.
+
+- Database migrations must be repeatable and non-destructive unless the user
+  explicitly requests a destructive migration. Use idempotent operations such
+  as `IF NOT EXISTS` where supported.
+
+- When the shape of a derived database object such as a view must change,
+  update it through the application's setup/migration path.
+
+- Do not treat a live database or service-state repair as an application fix.
+  If live state is inspected or repaired during debugging, put the equivalent
+  reproducible change in the appropriate application/setup source and validate
+  that source path.
+  
 ## Web Action Route IDs
 
 - The OpenServerless MCP tools create actions and service wiring; they do not
