@@ -403,21 +403,30 @@ When inspecting PostgreSQL through MCP, use the exact exposed tool names. Use
 tables/views in a schema. Do not invent generic tool names such as
 `list_schemas`.
 
-## Application Environment And Redis Authentication
+## Application Environment
 
 Application `.env` and `.env.production` files are immutable agent boundaries.
-Never read, create, edit, import, synchronize, or regenerate them. Only the user
-may change application environment values through Trustant's configuration
-interface. If a required variable is missing, report its name and stop that path
-without generating a value or asking a secret tool to persist one.
+Never read, create, edit, import, synchronize, or regenerate them. Only the
+user may change application environment values through Trustant's
+configuration interface.
 
-Authenticated application pages use Redis-backed opaque sessions. Do not build
-page authentication on JWT or an application signing secret:
+If a required application environment variable is missing, report the missing
+variable and stop the affected path rather than inventing or persisting a
+value.
 
-- create every login, registration, `me`/session, protected-resource, and
-  logout action, then call `auth-setup` / `auth_setup` once with the complete
-  token, protected/session, and logout endpoint sets. It atomically adds Redis
-  wiring without reading or writing `.env`;
+## Redis Authentication
+
+When the requested application requires authentication, use Redis-backed
+opaque sessions. Do not build application authentication on JWT or an
+application signing secret.
+
+For authentication flows:
+
+- create or update only the authentication and protected-resource actions
+  required by the requested flow, then call `auth-setup` / `auth_setup` once
+  with the complete token, protected/session, and logout endpoint sets used by
+  that flow. It atomically adds Redis wiring without reading or writing
+  `.env`;
 - use `action-add-redis` / `action_add_redis` only for an individual
   non-authentication endpoint that needs Redis;
 - generate a cryptographically random opaque token at login or registration;
@@ -425,14 +434,16 @@ page authentication on JWT or an application signing secret:
 - construct every session key from `ctx.REDIS_PREFIX`;
 - validate the Redis record on every protected request and derive the current
   user from it, never from a browser-supplied user id;
-- delete the Redis record during logout;
+- delete the Redis record during logout when the requested flow includes
+  logout;
 - return and persist only the opaque token in the browser.
 
 When using Redis in an action, first add Redis wiring with
 `action-add-redis` / `action_add_redis`. The generated wrapper exposes
 `ctx.REDIS` and `ctx.REDIS_PREFIX` and adds the required Python Redis client to
-the action package. Always construct keys from the prefix and an app-local
-suffix:
+the action package.
+
+Always construct Redis keys from the generated prefix and an app-local suffix:
 
 ```python
 def redis_key(ctx, name):
@@ -441,27 +452,10 @@ def redis_key(ctx, name):
 
 Use `ctx.REDIS.get(redis_key(ctx, "cache:item"))`,
 `ctx.REDIS.set(redis_key(ctx, "cache:item"), value)`, and the same pattern for
-`delete`, `hset`, `hget`, `lpush`, `sadd`, `expire`, and similar commands. Do
-not use naked Redis keys such as `"stack-e2e-..."` directly with `ctx.REDIS`;
-Nuvolaris Redis ACLs only allow the configured user prefix.
+other Redis operations.
 
-Service MCP servers are read-only discovery and verification tools during
-application generation. Never use `postgres_execute_sql`, Redis/MongoDB/S3/
-Milvus mutation tools, or equivalent direct service writes to create schema,
-seed data, repair application state, or complete a feature. Put idempotent
-schema and seed behavior in setup actions and application writes in public
-OpenServerless actions so a new instance reproduces the same state.
-
-For S3 app verification, use the OpenServerless action path created with
-`action-add-s3` and the generated `ctx.S3_CLIENT` wiring. The credentials are
-scoped to `ctx.S3_DATA` and `ctx.S3_WEB`: never call
-`ctx.S3_CLIENT.list_buckets()`. Neither `head_bucket` nor bucket/object listing
-proves read/write access. A read/write check must create a unique temporary key
-in `ctx.S3_DATA` with `put_object`, retrieve it with `get_object`, compare the
-returned body bytes, and remove it with `delete_object` in a `finally` block.
-Report `read_write: OK` only after the byte comparison succeeds. If an S3 MCP
-listing tool fails, treat it as a diagnostic tool failure and continue through
-the configured app bucket/action path or `rclone` when available.
+Do not use naked Redis keys directly with `ctx.REDIS`; Trustant/Nuvolaris Redis
+ACLs only allow the configured user prefix.
 
 ## Runtime Host Rules
 
