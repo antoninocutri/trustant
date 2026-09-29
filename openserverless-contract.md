@@ -62,18 +62,17 @@ Do not guess tool names, parameters, or contracts from memory.
   
 ## Files
 
-- Frontend code lives in `src/`.
+- Frontend source lives in `src/`.
 - Public web assets live in `public/`.
-- Action logic lives in `packages/<package>/<action>/<module>.py`.
-- Generated wrappers live in `packages/<package>/<action>/__main__.py`.
-  Do not edit wrappers for business logic.
-- Direct edits to generated wrappers and deploy artifacts are unsupported and
-  the managed Pi policy blocks them. Use the OpenServerless MCP action tool
-  instead of working around artifact ownership.
-- Deploy archives live beside action directories, for example
-  `packages/v1/contacts.zip`. Never create, edit, move, or delete ZIP files
-  manually, including ZIP files inside an action source directory.
-- Setup and initialization actions live under `packages/setup/<action>/`.
+- Editable action logic lives in
+  `packages/<package>/<action>/<module>.py`.
+- Generated `__main__.py` wrappers are platform-owned. Never create or edit
+  them manually; create or repair actions and service wiring through the
+  OpenServerless MCP tools.
+- Generated action ZIP archives are platform-owned deployment artifacts, not
+  editable application source.
+- Setup and initialization actions live under
+  `packages/setup/<action>/`.
 
 ## Action Names
 
