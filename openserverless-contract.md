@@ -271,12 +271,19 @@ manual deployment workflow.
 
 ## If Blocked
 
-- If an MCP action tool is missing or returns invalid tool, call `mcp({})` and
-  inspect generated `.mcp.json` plus that server's exact tool list; do not
-  invent raw `ops action` commands.
-- After three semantically equivalent failures with no successful relevant
-  source or wiring mutation, stop that strategy and revise the diagnosis.
-  There is no numeric global step/turn budget while work makes real progress.
-- If a service MCP write would "fix" state, fix the setup/action code instead
-  unless the user explicitly requested administrative data repair.
-- If validation is impossible, state the blocker and the command that failed.
+If a required MCP tool appears missing or invalid, rediscover the relevant
+server's exposed tools and schemas and inspect the active `.mcp.json`
+configuration before changing strategy. Do not guess tool names or replace
+managed MCP operations with unsupported raw `ops action` commands.
+
+Do not repeat a semantically equivalent failed operation without new evidence
+or a relevant change. Reassess the diagnosis before trying another approach.
+
+A live database or service repair is not a source-level fix. If live state is
+changed through a service MCP tool during debugging, reproduce the required
+change through the appropriate application or setup source unless the user
+explicitly requested an administrative live-state repair.
+
+If required validation cannot be completed, state the specific blocker and
+the command or check that failed. Do not claim successful validation that was
+not performed.
