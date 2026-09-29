@@ -307,10 +307,13 @@ Invalid examples:
 - `v1/orders/create`
 - `packages/v1/auth/register`
 
-If an API needs CRUD behavior, prefer one public action per resource, such as
+For a new CRUD API, prefer one public action per resource, such as
 `v1/contacts` or `v1/orders`, and branch inside the editable module using
 `__ow_method` plus request data. If separate actions are clearer, keep names
 flat and hyphenated, such as `v1/contacts-list` or `v1/orders-create`.
+
+For an existing API, preserve its current valid endpoint structure unless the
+requested change requires restructuring it.
 
 Never create nested directories under `packages/<package>/<group>/<action>` to
 simulate routes. They are not valid Trustant/OpenServerless endpoints.
