@@ -712,56 +712,60 @@ application session tokens.
 
 ## Authentication UI Rules
 
-When an app has login or registration:
+Apply these rules when the requested application flow includes authentication.
 
-- Treat login/register as the only public UI flows.
-- Replace starter placeholder screens. The root route must redirect to login,
-  render login, or render the authenticated app based on session state; it must
-  not keep the Trustant starter/welcome template.
-- Before marking auth UI complete, inspect the router and the component used by
-  `/` or `#/`. Remove or replace generated starter content such as `Welcome`,
-  `Try the following prompts to start`, `Powered by Trustant`, `trustant.png`,
-  or sample prompt lists. A protected app is incomplete if the browser-visible
-  home page still shows the starter screen.
-- Hide protected navigation items such as dashboards, contacts, orders,
-  settings, admin, or profile until the user is authenticated.
-- Protect direct routes too. If an unauthenticated user opens a protected hash
-  route directly, redirect to the login/register route or render the auth view,
-  not the protected page.
+Implement only the authentication UI and routes required by the application.
+Do not add registration, logout, profile, recovery, or other authentication
+flows unless they are required by the requested behavior or already exist in
+the application.
+
+- Public authentication routes must remain accessible without an authenticated
+  session.
+- Protected content and navigation must not be shown as authenticated merely
+  because cached user data exists in the browser.
+- Protect direct routes as well as navigation links. If an unauthenticated user
+  opens a protected route directly, redirect to the appropriate authentication
+  route or render the application's unauthenticated state.
+- When the application is intended to be fully protected, the root route must
+  resolve to the appropriate authentication or authenticated application state
+  rather than leaving the Trustant starter screen visible.
+- Replace starter placeholder content only where it conflicts with the
+  requested application flow. Do not refactor unrelated screens solely to
+  remove starter content.
 - With React Router `HashRouter`, pass logical routes such as `/login` to
   `Link`, `NavLink`, `Navigate`, and `useNavigate`. The router adds `#/` to the
-  browser URL. Never pass `#/login` to those APIs, and never use root-relative
-  anchors such as `<a href="/login">` for internal navigation.
-- After login, persist only the opaque session token needed by the frontend.
-  A cached user/profile may improve rendering but is never authoritative proof
-  of authentication.
-- A successful login or registration must update the live authentication
-  provider/store before navigating to a protected route. Writing token/user
-  data only to `localStorage` leaves the current React render unauthenticated
-  and commonly causes an immediate redirect back to login.
-- On every full-page load, keep an explicit authentication loading state and
-  validate the persisted token through a bounded backend `me`/session endpoint
-  before rendering protected routes. The backend validates expiry and derives
-  identity from the token. On any validation failure, clear the token and
-  cached identity and render the public authentication flow; never fall back to
-  a cached localStorage user as an authenticated session.
-- A successful registration must establish the same authenticated session as
-  login, either by returning session/token/user data directly or by performing
-  an immediate login. Do not send the newly registered user back to a separate
-  login step before entering the protected area.
-- Add an explicit logout path when protected navigation is shown.
-- Back login, registration, `me`/session, every protected action, and logout
-  with the same Redis session contract. Every one of those actions must have
-  generated Redis wiring and use `ctx.REDIS_PREFIX`; JWT and application
-  signing secrets are not an alternative.
-- Give every form control a stable `id` and `name`, and associate each label
-  with `htmlFor` matching that `id`. A placeholder is not a label. Ambiguous or
-  duplicated control identity is a form-semantics bug: fix it at the source
-  rather than working around it.
+  browser URL. Do not pass `#/login` to those APIs or use root-relative
+  anchors such as `<a href="/login">` for internal HashRouter navigation.
+- After successful login, persist only the opaque session token required by
+  the frontend. Cached user or profile data may be used for rendering but is
+  not authoritative proof of authentication.
+- A successful login must update the live authentication provider or store
+  before navigating to a protected route. Persisting token or user data only
+  to `localStorage` must not leave the current React state unauthenticated.
+- When restoring a persisted authenticated session on page load, keep an
+  explicit loading state while the backend validates the token through the
+  application's session-validation endpoint. Do not render protected content
+  from cached browser identity before validation succeeds.
+- If persisted-session validation fails, clear the invalid session state and
+  render the appropriate unauthenticated flow.
+- After successful registration, follow the authentication behavior required
+  by the application. Do not add automatic login, an additional login step, or
+  a redirect unless required by the requested flow.
+- When logout is part of the requested flow, clear both the backend session
+  according to the application's Redis session contract and the corresponding
+  frontend authentication state.
+- Give form controls stable `id` and `name` values and associate labels with
+  matching `htmlFor` values. Do not use placeholders as substitutes for
+  labels.
 - Do not hardcode browser-visible identity such as `user_id=1` in fetch URLs or
-  request bodies. The backend must derive the current user from authenticated
-  request state, such as a token/session header, not from a user id supplied by
-  the browser.
+  request bodies. Protected backend actions must derive the current user from
+  validated authenticated request state rather than trusting a user id supplied
+  by the browser.
+
+Use the Redis authentication contract defined earlier for every authentication
+or protected action that participates in the requested flow. Do not create
+additional authentication endpoints solely to complete a predefined
+login/register/session/logout set.
 
 ## Setup And Data Initialization
 
