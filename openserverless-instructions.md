@@ -47,11 +47,12 @@ wrappers, raw credentials, or guessed `ops` commands.
   them.
 - Setup and initialization belong in private actions in package `setup`.
 - Trustant launches and manages the Vite dev server and TruACP/Pi process.
-- OpenServerless web actions have their own request parameter, metadata, and
-  response semantics. Treat them carefully.
-- Every backend change should end with bounded validation against the real
-  deployed action endpoint.
-
+- OpenServerless web actions have specific request parameter, metadata, and
+  response semantics. Follow the web action rules in this guide rather than
+  assuming conventional HTTP server behavior.
+- Validate backend changes proportionally to their scope, using the real
+  deployed action endpoint when runtime behavior is affected.
+  
 ## Critical Recovery Contract
 
 Trustant also generates `AGENTS.md` in this app root. It is the app-local
