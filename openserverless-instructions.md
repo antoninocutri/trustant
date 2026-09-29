@@ -536,100 +536,77 @@ Do not inspect or load unrelated skills.
 
 ## Web Action Request Rules
 
-OpenServerless web actions are Apache OpenWhisk web actions:
+OpenServerless web actions expose request data through action arguments and
+`__ow_*` metadata. Parse only the request inputs required by the action. Do not
+copy every helper below into an action unless that action needs it.
 
-- Public web actions can be invoked over HTTP without an OpenWhisk API key.
-- The action owner pays for the activation, so the action must implement its
-  own application-level authorization when needed.
-- Query parameters, form fields, and JSON object body fields can be passed as
-  first-class action arguments.
-- In normal OpenWhisk merging, body fields override query fields.
-- HTTP context is exposed through reserved metadata keys such as
-  `__ow_method`, `__ow_headers`, and `__ow_path`.
-- Web actions support HTTP methods such as GET, POST, PUT, PATCH, DELETE, HEAD,
-  and OPTIONS. Use `__ow_method` for method-based CRUD actions.
-- Requests cannot override reserved `__ow_*` metadata names.
-
-Trustant-generated Python actions should be defensive: some wrappers or
-clients may also provide `args["body"]` as a dict or JSON string. Merge both
-shapes and let top-level fields win, because a generated wrapper or previous
-edit can create an empty `body = {}` while real request fields are top-level.
-
-Use this pattern in editable modules when reading JSON fields:
+When an action accepts a JSON request body, use a small local helper that
+handles the supported OpenServerless body representations:
 
 ```python
+import base64
 import json
 
-def request_data(args):
-    data = dict(args) if isinstance(args, dict) else {}
-    body = data.get("body")
+
+def body_json(args):
+    body = args.get("__ow_body")
+    if body is None:
+        return {}
+
+    if args.get("__ow_isBase64Encoded"):
+        body = base64.b64decode(body).decode("utf-8")
+
+    if isinstance(body, dict):
+        return body
+
     if isinstance(body, str):
         try:
-            body = json.loads(body)
-        except Exception:
-            body = {}
-    merged = dict(body) if isinstance(body, dict) else {}
-    ignored = {"body", "POSTGRES_URL", "__ow_method", "__ow_headers", "__ow_path"}
-    merged.update({k: v for k, v in data.items() if k not in ignored})
-    return merged
+            return json.loads(body)
+        except json.JSONDecodeError:
+            return {}
+
+    return {}
 ```
 
-Read request metadata from OpenServerless keys first:
+When an action accepts query parameters, read them from the OpenServerless
+request arguments rather than assuming a conventional web framework request
+object:
 
 ```python
-def request_method(args):
-    return (args.get("__ow_method") or args.get("method") or "GET").upper()
+from urllib.parse import parse_qs
 
-def request_headers(args):
-    headers = args.get("__ow_headers") or args.get("headers") or {}
-    return {str(k).lower(): v for k, v in headers.items()} if isinstance(headers, dict) else {}
 
-headers = request_headers(args)
-auth_header = headers.get("authorization", "")
+def query_params(args):
+    query = args.get("__ow_query")
+    if not query:
+        return {}
+
+    parsed = parse_qs(query, keep_blank_values=True)
+    return {
+        key: values[-1] if values else ""
+        for key, values in parsed.items()
+    }
 ```
 
-If a raw or non-JSON request body is needed, handle `__ow_body` explicitly.
-Most app JSON endpoints should not need raw body handling.
-
-For REST-style item routes, do not assume `__ow_path` always contains the full
-public URL. It can be a suffix or a different shape depending on the
-OpenServerless web action route. Use body `id` only as a fallback, not as the
-only way update/delete works.
-
-Use this pattern or an equivalent one for item ids:
+When an action needs an HTTP request header, read it from the OpenServerless
+request metadata:
 
 ```python
-def request_route_id(args, data, resource_name):
-    for key in ("id", f"{resource_name}_id"):
-        value = data.get(key)
-        if value not in (None, ""):
-            return str(value)
+def header_value(args, name):
+    headers = args.get("__ow_headers") or {}
+    wanted = name.lower()
 
-    raw_path = str(args.get("__ow_path") or args.get("path") or "").strip("/")
-    if not raw_path:
-        return ""
+    for key, value in headers.items():
+        if key.lower() == wanted:
+            return value
 
-    parts = [part for part in raw_path.split("/") if part]
-    if not parts:
-        return ""
-
-    if resource_name in parts:
-        index = parts.index(resource_name)
-        if index + 1 < len(parts):
-            return parts[index + 1]
-
-    return parts[-1]
+    return None
 ```
 
-For CRUD resources, test both update and delete through the public HTTP path:
-
-```bash
-curl -X PUT http://localhost:5173/api/my/v1/<resource>/<id> ...
-curl -X DELETE http://localhost:5173/api/my/v1/<resource>/<id> ...
-```
-
-A test that only calls `/api/my/v1/<resource>` with `{"id": ...}` in the body
-does not prove the REST-style item route works.
+Keep small request-parsing helpers local to the action module unless the
+existing project already provides an appropriate shared utility. Do not
+introduce shared abstractions solely to avoid a small amount of local parsing
+code.
 
 ## Web Action Response Rules
 
