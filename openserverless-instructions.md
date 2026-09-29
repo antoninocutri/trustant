@@ -611,11 +611,11 @@ code.
 ## Web Action Response Rules
 
 OpenWhisk web actions can use top-level `headers`, `statusCode`, and `body` as
-HTTP response instructions. Trustant-generated Python wrappers, however,
-commonly call the editable module and return:
+HTTP response instructions. Trustant-generated Python wrappers, however, may
+call the editable module and return:
 
 ```python
-{ "body": module.main(args, ctx=ctx) }
+{"body": module.main(args, ctx=ctx)}
 ```
 
 Because of that, a module return value such as:
@@ -624,28 +624,35 @@ Because of that, a module return value such as:
 {"statusCode": 401, "body": {"error": "Token non fornito"}}
 ```
 
-can reach the browser as HTTP 200 with that object nested inside JSON if the
-wrapper did not pass it through.
+may reach the browser as HTTP 200 with that object nested inside JSON when the
+generated wrapper does not pass web-action envelopes through.
 
 Therefore:
 
-- Do not edit `__main__.py` just to force HTTP status behavior.
+- Do not edit `__main__.py` to force HTTP status behavior.
 - Treat editable module return values as application JSON unless the generated
   wrapper is known to pass web-action envelopes through.
-- Prefer simple module payloads such as `{"ok": False, "error": "..."}` for
-  app-level errors.
-- Frontend fetch code should normalize both direct and wrapped payloads before
-  reading fields.
+- When the wrapper does not pass envelopes through, use simple application
+  payloads such as `{"ok": False, "error": "..."}` for app-level errors.
+- Preserve the existing response contract of working endpoints unless the
+  requested change requires changing it.
+- When wrapped responses must be handled by the frontend, follow the existing
+  project's response-normalization pattern if one exists.
 
-Use this frontend pattern or an equivalent one:
+If the frontend does not already normalize wrapped responses, use a minimal
+pattern such as:
 
 ```ts
 const raw = await response.json();
 const data = raw && typeof raw === "object" && "body" in raw ? raw.body : raw;
+
 if (!response.ok || data?.ok === false || data?.error) {
   throw new Error(data?.error || `Request failed: ${response.status}`);
 }
 ```
+
+Do not add response-normalization code to unrelated frontend paths that already
+handle their response contract correctly.
 
 ## Browser-Opened And Printable Actions
 
