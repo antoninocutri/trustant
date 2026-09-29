@@ -69,6 +69,11 @@ Do not guess tool names, parameters, or contracts from memory.
 - Generated `__main__.py` wrappers are platform-owned. Never create or edit
   them manually; create or repair actions and service wiring through the
   OpenServerless MCP tools.
+- Python action dependencies are managed through
+  `action-requirements` / `action_requirements`. Never create or edit an
+  action `requirements.txt` manually; let the tool determine whether the
+  requested library is already provided by the OpenServerless runtime or must
+  be added to the action's generated `requirements.txt`.
 - Generated action ZIP archives are platform-owned deployment artifacts, not
   editable application source.
 - Setup and initialization actions live under
