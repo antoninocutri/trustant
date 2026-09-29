@@ -174,30 +174,33 @@ before making another source change.
 
 ## Application Development Workflow
 
-1. Inspect existing `src/`, `packages/`, `public/`, `.agents/skills`, and
-   available MCP servers before changing files.
-2. Build frontend behavior in `src/` using the existing React/Tailwind style.
-3. For backend behavior, create or update OpenServerless actions instead of
-   starting a server process.
-4. Add platform services with the action/service tools before writing code that
-   depends on them.
-5. Put schema, collection, cache, or seed initialization in private setup
-   actions.
-6. Use generated MCP servers and CLI wrappers to inspect service state during
-   debugging.
-7. Validate with bounded checks against the real public endpoint and
-   browser-visible app host.
+1. Inspect the existing files and project areas relevant to the requested
+   change before editing them.
+2. For frontend behavior, work in `src/` and follow the existing
+   React/Tailwind patterns.
+3. When backend behavior is required, create or update OpenServerless actions
+   instead of starting a server process.
+4. When the requested behavior requires a platform service, configure it
+   through the appropriate action/service tools before writing code that
+   depends on it.
+5. When initialization is required, put schema, collection, cache, or seed
+   initialization in private setup actions.
+6. Use generated MCP servers and CLI wrappers when service inspection is
+   relevant to implementation or debugging.
+7. Validate proportionally to the requested change, using the real public
+   endpoint or browser-visible application when runtime behavior is affected.
 
-For frontend behavior, validate against the Trustant-managed
-`http://localhost:5173` with `react_validate` and bounded HTTP checks before
-declaring a UI bug fixed. Check the external `vite.<domain>` ingress only after
-the managed watcher has deployed the current sources and only when that
-ingress behavior is in scope. Do not start another Vite server.
+For frontend changes, validate proportionally to their scope. When runtime
+behavior or routing is affected, validate against the Trustant-managed
+`http://localhost:5173` using the relevant React validation and bounded HTTP
+checks. Check the external `vite.<domain>` ingress only after the managed
+watcher has deployed the current sources and only when ingress behavior is in
+scope. Do not start another Vite server.
 
-Use this execution loop for backend work:
+When the requested change involves OpenServerless actions, use this execution
+loop:
 
-1. Read `.openserverless-contract.md` if present. Run the checker after the
-   watcher settles and before completion when it exists.
+1. Read `.openserverless-contract.md` if present.
 2. Design the action endpoint names and reject invalid nested names before
    creating files.
 3. Create actions with the OpenServerless MCP action tool.
@@ -209,12 +212,13 @@ Use this execution loop for backend work:
    action tool before continuing.
 6. Add Python libraries with `action-requirements` — never with a virtualenv or
    a `requirements.txt`.
-7. Wait for the managed `ops ide devel` watcher after each coherent action
-   change batch, then run the checker. If setup actions changed, run
-   `timeout 120 ops ide setup` only after the checker passes. Inspect failures,
-   then validate via the real HTTP app path.
+7. After a coherent action change batch, wait for the managed `ops ide devel`
+   watcher, then run the checker. If setup actions changed, run
+   `timeout 120 ops ide setup` only after the checker passes. Inspect failures
+   before continuing with runtime validation.
 
-Choose the backend shape this way:
+When the requested feature requires backend capabilities, choose among
+configured platform services according to these roles:
 
 - Use a public `v1` action for browser-facing APIs.
 - Use a private `setup` action for idempotent initialization.
@@ -227,7 +231,7 @@ Choose the backend shape this way:
 - Do not use Milvus as a replacement for MongoDB.
 - Use the Agentic React MCP only when the Vite config imports/references
   `@agentic-react/vite` and invokes `AgenticReact()`.
-
+  
 ## OpenServerless Action Tools
 
 Use the Trustant/OpenServerless MCP action tools instead of manually creating
