@@ -214,52 +214,60 @@ verify the relevant status, content type, and response shape.
 
 ## Deploy And Verification
 
-- After one or more successful `action_new` creations, finish the coherent
-  action/wiring/source batch and call `trustant_runtime_redeploy` exactly
-  once. It invokes the same safe Trustant host workflow as the UI Redeploy
-  action: stop the watcher, run the full deploy, restart the watcher, and wait
-  for readiness. A compatible idempotent `action_new` no-op does not require
-  it. Do not run a concurrent `ops ide deploy`.
-- After the required redeploy succeeds, read the canonical watcher state with
-  `trustant_runtime_status`. Watcher status, checker, HTTP, and browser
-  verification are blocked while redeploy remains required.
-- Run `timeout 60 check_openserverless_actions.sh .` once after that evidence
-  and before setup, runtime verification, or completion. In managed live mode,
-  the checker validates source and contract invariants without treating sibling
-  ZIP existence or freshness as watcher state.
-- If setup actions changed, run `timeout 120 ops ide setup` only after watcher
-  evidence shows a successful action update and the checker passes. Do not
-  claim completion until setup runs successfully.
-- Never create or update action ZIP files manually. The managed watcher owns
-  the sibling `packages/<package>/<action>.zip` artifacts.
-- Never inspect, list, search, stat, or poll those sibling ZIPs. If
-  `trustant_runtime_status` reports an error or no progress, use that exact
-  evidence to repair the source/tool sequence or report a managed failure. Do
-  not repeat the checker without a relevant mutation or watcher change, run a
-  manual deploy, increase the timeout, or repair a ZIP.
-- If the checker reports an action module without `__main__.py`, create or
-  repair that action with the OpenServerless MCP action tool before editing the
-  module logic.
-- If the checker reports wrapper drift, do not patch `__main__.py` by hand:
-  recreate or repair the action/service wiring with the OpenServerless MCP
-  tools, then edit only the module file.
-- Verify app HTTP endpoints from inside the pod with:
-  `curl http://localhost:5173/api/my/<package>/<action>`.
-- For write paths, write and then read back the changed value.
-- For delete paths, delete through the public HTTP route and then confirm the
-  record is no longer returned.
-- If you used `psql` or a service MCP to inspect/repair live data during
-  debugging, also prove the source setup/action code recreates the same state.
-- For printable/browser-opened paths, prove the response shape with
-  `curl -i http://localhost:5173/...` and check that JSON endpoints return JSON
-  while printable HTML endpoints return `text/html`.
-- Use `vite.<domain>` only after managed deployment is confirmed and only for
-  external browser/ingress verification.
-- Do not hide failures with `|| true` or output truncation that masks the first
-  actionable error.
-- Do not use `|| true`, `|| echo`, or `head`/`tail` pipelines on deploy, setup,
-  login, checker, and frontend-build commands; output masking can turn a real
-  failure into apparent success.
+Use the Trustant-managed deployment workflow. Never run a concurrent
+`ops ide deploy`, start another development watcher, or manipulate generated
+deployment artifacts manually.
+
+After one or more successful `action_new` creations, finish the coherent
+action/wiring/source batch and call `trustant_runtime_redeploy` exactly once.
+A compatible idempotent `action_new` no-op does not require another redeploy.
+
+After `trustant_runtime_redeploy`, read `trustant_runtime_status` and use it as
+the authoritative managed runtime/watcher state before continuing with checker,
+setup, HTTP, or browser verification.
+
+After the managed watcher has processed a coherent action change batch, run:
+
+`timeout 60 check_openserverless_actions.sh .`
+
+Run the checker once per relevant change batch. If it fails, use the reported
+evidence to fix the relevant source or wiring before rerunning it.
+
+If setup actions changed, run `timeout 120 ops ide setup` only after the
+managed action update succeeds and the checker passes. Required setup must
+succeed before setup-related work is complete.
+
+Generated action ZIP files are owned by the managed workflow. Do not create,
+modify, inspect, poll, or use them as deployment or watcher evidence.
+
+If the checker reports a missing generated wrapper or wrapper drift, repair the
+action or service wiring through the OpenServerless MCP tools. Never repair
+`__main__.py` manually.
+
+Validate runtime behavior proportionally to the requested change:
+
+- Validate affected public actions through the managed
+  `http://localhost:5173/api/my/<package>/<action>` path.
+- For an affected write path, read back the relevant state when needed to prove
+  the write succeeded.
+- For an affected delete path, verify that the deleted state is no longer
+  returned.
+- For affected browser-opened or printable responses, verify the relevant
+  status, content type, and response shape with a bounded HTTP check.
+- Use `vite.<domain>` only when external browser or ingress behavior is part of
+  the requested validation.
+
+If live database or service state was inspected or repaired during debugging,
+verify that the corresponding application or setup source reproduces the
+required state. Runtime-only repair is not completion proof.
+
+Do not mask deployment or validation failures with forced-success shell
+constructs or output truncation that can hide the actionable error.
+
+If the managed watcher, redeploy, checker, or setup workflow fails, diagnose
+the reported evidence rather than repeatedly rerunning the same operation,
+increasing timeouts, manipulating generated artifacts, or switching to a
+manual deployment workflow.
 
 ## If Blocked
 
