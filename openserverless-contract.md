@@ -76,16 +76,20 @@ Do not guess tool names, parameters, or contracts from memory.
 
 ## Action Names
 
-Valid action names are only:
+Valid OpenServerless action names have one of these forms:
 
 - `action`
 - `package/action`
 
 Each package and action segment must start with a letter and contain only
-letters, numbers, and hyphens. Use flat hyphenated names; underscores and
-spaces are invalid.
+letters, numbers, and hyphens. Use flat hyphenated action names; underscores,
+spaces, and additional path segments are invalid.
 
-Use package `v1` for browser APIs unless the user explicitly asks otherwise.
+Use package `v1` as the default for newly created browser-facing APIs unless
+the existing application uses another package or the user explicitly requests
+otherwise.
+
+Do not rename existing valid actions merely to match a preferred naming style.
 
 Valid examples:
 
