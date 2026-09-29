@@ -807,21 +807,25 @@ and the existing project does not already provide the needed capability.
 For a required frontend dependency that is not already present, add it to
 `package.json` and use the project's existing npm workflow.
 
-Add Python dependencies only with
-`action-requirements` / `action_requirements`.
+For Python action dependencies, use only
+`action-requirements` / `action_requirements`. Never create or edit an action
+`requirements.txt` manually.
 
-Never create a Python virtual environment with `python -m venv`,
-`virtualenv`, `uv venv`, or a `.venv`/`venv` directory, and never create or
-edit `requirements.txt` for OpenServerless actions. Action dependencies are
-managed through `action-requirements` and deployed with the action.
+Before importing a non-standard-library Python package, determine whether it is
+actually required by the requested implementation. If it is required, pass it
+to `action-requirements` and let the tool determine whether the library is
+already provided by the OpenServerless runtime or must be added to the action's
+generated `requirements.txt`.
 
-Before importing a non-standard-library Python package, verify that the action
-already has the dependency. If not, add it with `action-requirements`.
+Never create a Python virtual environment with `python -m venv`, `virtualenv`,
+`uv venv`, or a `.venv`/`venv` directory, and do not install, vendor, download,
+or otherwise introduce Python action dependencies outside the
+`action-requirements` workflow.
 
 If an action fails with `ModuleNotFoundError`, determine whether the import is
-required. If it is, add the missing dependency with `action-requirements`;
-otherwise correct or remove the invalid import. Do not continue runtime
-validation while the required import is unresolved.
+required. If it is, process the missing dependency through
+`action-requirements`; otherwise correct or remove the invalid import. Do not
+continue runtime validation while a required import is unresolved.
 
 Do not add, upgrade, replace, or reinstall unrelated dependencies while
 implementing a requested change.
