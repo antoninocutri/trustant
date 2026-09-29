@@ -196,22 +196,21 @@ substantially restructured, validate the complete CRUD flow.
 
 ## Browser And Printable Responses
 
-- If the frontend opens an action URL with `window.open(...)`, the target must
-  be a browser response, not just app JSON.
-- For printable HTML such as an invoice, return HTML as the HTTP body with
-  `Content-Type: text/html; charset=utf-8`. Do not return
-  `{"ok": true, "html": "<!DOCTYPE html>..."}` when the browser opens the URL
-  directly.
-- If the generated wrapper nests module returns under JSON and cannot pass
-  headers/body through, use a frontend route that fetches JSON with
-  `Authorization`, extracts the HTML, writes it to a new window/document, and
-  then prints. Do not pretend that raw `window.open(/api/my/...)` will render
-  embedded JSON HTML as a page.
-- For opened/downloaded/printable URLs, verify with `curl -i` from inside the
-  pod and check both status and `Content-Type`.
-- Token-in-query is acceptable only when a new browser window cannot send the
-  `Authorization` header; prefer short-lived or app-session tokens and validate
-  with a real session token.
+When a requested feature opens an action URL directly in the browser, the
+endpoint must return a response appropriate for direct browser consumption.
+
+For directly rendered printable HTML, return the HTML as the response body
+with `Content-Type: text/html; charset=utf-8`. Do not return HTML embedded
+inside a JSON response when the browser is expected to render the action URL
+directly.
+
+If the generated action response cannot preserve the required browser response
+shape, handle the response through the frontend instead of treating JSON that
+contains HTML as directly renderable HTML.
+
+When browser-opened, downloadable, or printable response behavior is changed,
+validate the affected endpoint with a bounded HTTP check such as `curl -i` and
+verify the relevant status, content type, and response shape.
 
 ## Deploy And Verification
 
