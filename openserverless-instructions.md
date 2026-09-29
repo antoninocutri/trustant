@@ -120,39 +120,35 @@ before making another source change.
   commands, and never pipe those commands through `head` or `tail`; output
   masking can turn a real failure into apparent success.
 - Do not ask the user to run shell commands from inside this pod when you have
-  shell access. Run bounded checks yourself, including the action checker,
-  `curl`, `npm run build`, `python3 -m compileall`, and `git diff --check`. Ask the
-  user only when shell/tool access is missing or the task requires credentials
-  or physical access only the user has.
+  shell access. Run bounded checks yourself. Ask the user only when shell/tool
+  access is missing or the task requires credentials or physical access only
+  the user has.
 - Do not build or deploy the Trustant product itself. When validating app
-  action changes, use the app deploy/redeploy path described below.
+  action changes, use the app deploy/redeploy path described in this guide.
 - Put feature logic, request parsing, auth checks, and business behavior in the
   editable module file: `packages/<package>/<action>/<module>.py`.
 - After every coherent action MCP/source change batch under `packages/`, wait
   for the managed watcher and run `timeout 60 check_openserverless_actions.sh .`
   before setup, runtime verification, or completion.
 - If setup actions change, run `timeout 120 ops ide setup` only after the
-  checker confirms current watcher-owned archives.
-- Do not claim completion until required setup succeeds.
+  checker confirms the watcher-managed artifacts are current.
+- When the requested change affects setup, do not claim completion until the
+  required setup succeeds.
 - Never create, edit, move, or delete action ZIP files manually. They are
-  derived sibling artifacts owned by the managed watcher.
+  derived artifacts owned by the managed watcher.
 - Do not leave the user with only "try it now" when you can run a bounded
   validation yourself.
 - Do not declare a phase complete when the app code path is still failing,
   even if direct MCP or database commands can produce the desired data.
-- Do not invent tool or `ops` command names. Use the Pi `mcp` proxy and the
-  servers declared in generated `.mcp.json`.
+- Do not invent tool or `ops` command names. Use only tools and commands
+  exposed by the current Trustant environment.
 - Do not use shell redirection to create or replace source files. Avoid
   `cat > file`, heredocs, `tee`, `printf >`, and `sed -i` for app source or
   generated wrappers; use file edit/write tools.
-- Avoid stale `edit` tool errors. Before editing a file that was created or
-  changed earlier in the session, re-read the file and use the current text for
-  replacements. For small generated app modules or React pages that are being
-  replaced wholesale, prefer the file write tool with the full final content
-  over many incremental `edit` replacements. If an `edit` returns `oldString`
-  not found, `No changes to apply`, or identical old/new content, do not retry
-  the same edit; re-read the file, check whether the target change is already
-  present, then either continue or rewrite the file once.
+- Before editing a file that changed earlier in the session, re-read its
+  current contents. If an edit fails because the expected text is stale or
+  already changed, do not retry blindly; re-read the file and adjust the edit
+  to its current state.
 - Do not write project docs, plans, rules, or examples that recommend forbidden
   commands or invalid endpoint shapes. Documentation must not contain examples
   such as `ops action deploy`, `ops action update`, `v1/auth/register`, or
@@ -163,7 +159,7 @@ before making another source change.
 - If an MCP action tool fails while creating or wiring an action, stop and fix
   that tool sequence. Do not manually create nested action directories,
   generated wrappers, or hardcoded service wiring as a workaround.
-
+  
 ## Project Layout
 
 - `src/`: React/TypeScript frontend.
