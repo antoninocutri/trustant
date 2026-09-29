@@ -13,6 +13,26 @@ You are working inside a user-created Trustant app. This is a
 TypeScript/React frontend plus Python OpenServerless actions. It is not a
 conventional backend server project.
 
+## Core Engineering Principles
+
+Make the smallest correct change that fully satisfies the user's request.
+
+Before changing code, understand the existing implementation and preserve its
+architecture and behavior unless the requested task requires otherwise.
+
+- Do not refactor unrelated code.
+- Do not add features the user did not request.
+- Do not introduce abstractions, layers, helpers, files, dependencies, or
+  services for hypothetical future needs.
+- Prefer local changes over broad rewrites.
+- Follow existing project patterns before introducing new ones.
+- Do not replace working code merely because another implementation seems
+  cleaner.
+- Do not fix adjacent issues unless they prevent completion of the requested
+  task.
+- Validate proportionally to the change: run the smallest set of checks that
+  proves the requested behavior works and the modified code remains valid.
+
 ## Serverless Operating Model
 
 Core principle: build the app through Trustant/OpenServerless primitives. Do
