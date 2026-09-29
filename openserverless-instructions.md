@@ -463,10 +463,10 @@ Pi and TruACP run inside the Trustant environment. Classify hosts before using
 them:
 
 - `localhost:5173` is the pod-local app dev server started by `ops ide devel`.
-  Use it for normal app HTTP validation from this shell.
+  Use it for app HTTP validation from this shell.
 - `localhost:4096` is the local TruACP server.
 - `trustant.<domain>` is the browser-visible Trustant UI/API host.
-- `vite.<domain>` is the browser-visible app host through Trustant
+- `vite.<domain>` is the browser-visible app host through the Trustant
   proxy/ingress. Use it only after managed deployment is confirmed and only
   when external browser or ingress routing is in scope.
 - `opencode.<domain>` is the legacy browser-visible hostname that proxies
@@ -475,26 +475,30 @@ them:
   `ops ide` orchestration. It must never be bound into an action, exposed as
   `ctx.OPS_APIHOST`, read by an action module, or emitted as
   `#--param OPS_APIHOST "$OPS_APIHOST"`.
-- Do not rewrite the generated Vite `/api/my` proxy target. Trustant starts the
-  managed dev server with the current app's `OPSDEV_HOST`; browser application
-  code must continue to use relative `/api/my/...` URLs.
+
+Do not rewrite the generated Vite `/api/my` proxy target. Trustant starts the
+managed dev server with the current app's `OPSDEV_HOST`; browser application
+code must continue to use relative `/api/my/...` URLs.
 
 Frontend code calls actions with relative `/api/my/<package>/<action>` URLs so
-the browser keeps its current origin. Action modules must not call sibling
-actions through `OPS_APIHOST`, browser-visible hosts, or ingress URLs. For
-multiple independent checks, let the frontend call the relative endpoints; for
-server-side aggregation, add every required generated service binding to one
-action and use its `ctx` clients directly.
+the browser keeps its current origin.
+
+Action modules must not call sibling actions through `OPS_APIHOST`,
+browser-visible hosts, or ingress URLs. When server-side aggregation is
+required, prefer using the required generated service bindings directly
+within the responsible action rather than chaining sibling actions over HTTP.
 
 One action may use MongoDB and Milvus independently. Use
 `ctx.MONGODB_CLIENT` / `ctx.MONGODB` for document-database operations and
-`ctx.MILVUS` for vector operations; do not remove either legitimate check merely
-because both appear in the same business module.
+`ctx.MILVUS` for vector operations. Do not remove or replace either legitimate
+service use merely because both appear in the same business module.
 
 Do not invent pod IPs, raw service names, public domains, or replacement
-localhost URLs for app verification. For app endpoints from this shell, prefer:
+localhost URLs.
 
-```bash
+When runtime endpoint validation is required, use the managed local app host:
+
+```bash id="5gz4qi"
 curl http://localhost:5173/api/my/<package>/<action>
 ```
 
