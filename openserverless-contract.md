@@ -27,39 +27,39 @@ Do not guess tool names, parameters, or contracts from memory.
 
 - You are inside a generated Trustant app workbench, normally
   `/home/trustant/workbench/<app>`.
-- The durable source is the app git repo; fixes must be made in repo files, not
-  only in the runtime.
-- Pi has the shell. Run bounded checks yourself instead of asking the user
-  to run pod-local commands.
-- After compaction, re-read the exact active request, this contract,
-  `AGENTS.md`, git status, and the relevant project files before resuming.
-  Pi has no Trustant session-enforcement plugin or recovery tool.
-- For a reported bug, reproduce the exact symptom before modifying source,
-  using bounded HTTP, log, or deterministic tests for evidence. If a check
-  fails repeatedly, stop repeating it and revise the diagnosis.
-- After source changes, run the relevant action and frontend checker commands,
-  `git diff --check`, and the frontend typecheck/build when present. Verify
-  user-visible frontend changes through the exact changed route. Pi has no
-  `trustant_completion_check` tool.
-- `ops ide devel` exposes the app in this pod at `http://localhost:5173`.
-- It is also the sole owner of live action packaging and deployment. Never run
-  `ops ide deploy` or start another `ops ide devel` instance. Do not kill or
-  replace the watcher or start `vite` or `npm run dev`.
-- TruACP/Pi serves in this pod at `http://localhost:4096`.
-- Browser/ingress hosts such as `vite.<domain>` are external checks. Use them
-  only after the managed watcher has deployed the current sources and only
-  when external routing matters.
-- `OPS_APIHOST` is the configured OpenServerless API host used by Trustant and
-  `ops ide` for login, deploy, and development proxy orchestration. It is not
-  an application secret or action runtime parameter. Never bind it into an
-  action, expose it as `ctx.OPS_APIHOST`, read it from an action module, or
-  generate `#--param OPS_APIHOST "$OPS_APIHOST"`.
-- Browser code calls actions with relative `/api/my/<package>/<action>` URLs so
-  the browser preserves its own origin. Actions must not call sibling actions
-  through `OPS_APIHOST`, a browser-visible host, or an ingress URL; either let
-  the frontend call the endpoints independently or give one action the
-  generated service bindings it needs.
-
+- The durable source of the application is its Git repository. Fix application
+  behavior in repository files, not only in live runtime state.
+- When validation or diagnosis requires a pod-local command and shell access is
+  available, run the bounded command yourself rather than asking the user to
+  run it.
+- After context compaction, re-read the active user request, this contract,
+  `AGENTS.md`, git status, and the relevant project files before resuming work.
+- When the user reports a bug or says a previous fix does not work, reproduce
+  the relevant symptom before modifying source when reproduction is possible.
+  Use bounded HTTP, log, or deterministic checks. If the same check fails
+  repeatedly without new evidence, stop repeating it and revise the diagnosis.
+- After source changes, validate proportionally to the requested change. Run
+  only the checks relevant to the files and behavior modified, and use
+  `git diff --check` as a final source-integrity check. For user-visible
+  frontend changes, verify the affected route or behavior.
+- `ops ide devel` exposes the managed application inside the pod at
+  `http://localhost:5173` and owns live action packaging and deployment.
+  Never start another `ops ide devel`, `vite`, or `npm run dev` process, and
+  never run `ops ide deploy` during the managed Edit session.
+- Do not kill, restart, or replace Trustant-managed development processes.
+- Browser/ingress hosts such as `vite.<domain>` are for external verification.
+  Use them only when external browser or ingress behavior is relevant and the
+  current sources have been deployed by the managed workflow.
+- `OPS_APIHOST` is a Trustant/OpenServerless orchestration value, not an
+  application secret or action runtime parameter. Do not bind it into an
+  action, expose it through `ctx`, or read it from application action code.
+- Browser code must call actions with relative
+  `/api/my/<package>/<action>` URLs so it preserves the current origin.
+- Actions must not call sibling actions through `OPS_APIHOST`, browser-visible
+  hosts, or ingress URLs. Let the frontend call independent endpoints when
+  appropriate, or give a server-side action the service bindings required to
+  perform its work directly.
+  
 ## Files
 
 - Frontend code lives in `src/`.
